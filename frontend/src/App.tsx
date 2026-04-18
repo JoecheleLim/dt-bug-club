@@ -82,30 +82,53 @@ const Header = () => (
   </header>
 );
 
-const Footer = () => (
-  <footer className="h-10 bg-cyber-card border-t border-cyber-border flex items-center justify-between px-6 text-[10px] text-gray-500 uppercase tracking-widest">
-    <div className="flex gap-6">
-      <div className="flex items-center gap-2">
-        <span className="text-cyber-dt">DT Commission</span>
-        <span className="text-white font-bold">RM 1,245.00</span>
+const Footer = ({ report }: { report: any[] }) => {
+  const dtCommission = report.filter(s => s.club === 'DT').reduce((acc, s) => acc + (s.clubCut || 0), 0);
+  const bugCommission = report.filter(s => s.club === 'Bug').reduce((acc, s) => acc + (s.clubCut || 0), 0);
+  const topAces = report.filter(s => s.isAce).sort((a, b) => b.hours - a.hours).slice(0, 3);
+
+  return (
+    <footer className="h-10 bg-cyber-card border-t border-cyber-border flex items-center justify-between px-6 text-[10px] text-gray-500 uppercase tracking-widest">
+      <div className="flex gap-6">
+        <div className="flex items-center gap-2">
+          <span className="text-cyber-dt">DT Commission</span>
+          <span className="text-white font-bold">RM {dtCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-cyber-bug">Bug Commission</span>
+          <span className="text-white font-bold">RM {bugCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-cyber-bug">Bug Commission</span>
-        <span className="text-white font-bold">RM 892.00</span>
+      
+      <div className="flex gap-4 items-center">
+        <span>Top Aces:</span>
+        {topAces.length > 0 ? topAces.map(ace => (
+          <span key={ace.id} className="bg-cyber-ace/20 text-cyber-ace px-2 py-0.5 rounded border border-cyber-ace/30">
+            {ace.name} ({ace.hours}h)
+          </span>
+        )) : <span className="text-gray-600 italic">None detected</span>}
       </div>
-    </div>
-    
-    <div className="flex gap-4 items-center">
-      <span>Top Aces:</span>
-      <span className="bg-cyber-ace/20 text-cyber-ace px-2 py-0.5 rounded border border-cyber-ace/30">Alice</span>
-      <span className="bg-cyber-ace/20 text-cyber-ace px-2 py-0.5 rounded border border-cyber-ace/30">Bob</span>
-      <span className="bg-cyber-ace/20 text-cyber-ace px-2 py-0.5 rounded border border-cyber-ace/30">Charlie</span>
-    </div>
-  </footer>
-);
+    </footer>
+  );
+};
 
 function App() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [report, setReport] = useState<any[]>([]);
+
+  const fetchGlobalData = async () => {
+    try {
+      const res = await fetch(`/api/report/${month}`);
+      const data = await res.json();
+      setReport(data);
+    } catch (e) {
+      console.error("Error fetching footer data", e);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchGlobalData();
+  }, [month]);
 
   return (
     <Router>
@@ -123,7 +146,7 @@ function App() {
             </Routes>
           </main>
           
-          <Footer />
+          <Footer report={report} />
         </div>
         
         {/* Right Drawer (Context Panel) */}

@@ -112,38 +112,39 @@ app.get('/api/report/:month', async (req, res) => {
     });
 
     const finalReport = [];
+    
+    // Calculate Aces overall (Top 3 by hours)
+    const sortedAll = [...data].sort((a, b) => (b.hours || 0) - (a.hours || 0));
+    const aceIds = new Set(sortedAll.slice(0, 3).filter(s => (s.hours || 0) > 0).map(s => s.id));
 
-    Object.keys(clubs).forEach(clubName => {
-      const staffInClub = clubs[clubName];
-      staffInClub.sort((a, b) => b.hours - a.hours);
+    data.forEach(staff => {
+      const hours = staff.hours || 0;
+      const gifts = staff.gifts || 0;
+      const giftValue = gifts * 12;
+      const isAce = aceIds.has(staff.id);
+      
+      let baseSalary, clubCut;
+      
+      if (isAce) {
+        baseSalary = hours * 14;
+        const taxableSalary = Math.max(0, baseSalary - (4 * hours));
+        clubCut = (0.25 * taxableSalary) + (0.10 * giftValue);
+      } else {
+        baseSalary = hours * 10;
+        clubCut = (0.20 * baseSalary) + (0.10 * giftValue);
+      }
 
-      staffInClub.forEach((staff, index) => {
-        const isAce = index < 3 && staff.hours > 0;
-        const hours = staff.hours;
-        const gifts = staff.gifts;
-        const giftValue = gifts * 12;
-        
-        let baseSalary, clubCut;
-        
-        if (isAce) {
-          baseSalary = hours * 14;
-          const taxableSalary = Math.max(0, baseSalary - (4 * hours));
-          clubCut = (0.25 * taxableSalary) + (0.10 * giftValue);
-        } else {
-          baseSalary = hours * 10;
-          clubCut = (0.20 * baseSalary) + (0.10 * giftValue);
-        }
+      const finalSalary = (baseSalary + giftValue) - clubCut;
 
-        const finalSalary = (baseSalary + giftValue) - clubCut;
-
-        finalReport.push({
-          ...staff,
-          isAce,
-          baseSalary,
-          giftValue,
-          clubCut,
-          finalSalary
-        });
+      finalReport.push({
+        ...staff,
+        hours,
+        gifts,
+        isAce,
+        baseSalary,
+        giftValue,
+        clubCut,
+        finalSalary
       });
     });
 
