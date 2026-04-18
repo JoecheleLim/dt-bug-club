@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Activity, Shield, Info, Zap, Database, Terminal as TerminalIcon, LayoutDashboard, Trophy, UserPlus } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
@@ -126,7 +126,7 @@ function App() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchGlobalData();
   }, [month]);
 
