@@ -5,47 +5,36 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-app.use(cors({
-  origin: 'https://dt-bug-club-frontend.vercel.app' 
-}));
+app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
-const dbPath = process.env.VERCEL ? '/tmp/database.sqlite' : path.join(__dirname, 'database.sqlite');
-
 const dbPromise = open({
-  filename: dbPath,
+  filename: path.join(__dirname, 'database.sqlite'),
   driver: sqlite3.Database
-}).catch(err => {
-  console.error('Failed to open database:', err);
-  process.exit(1);
 });
 
 async function setup() {
-  try {
-    const db = await dbPromise;
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS staff (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        club TEXT NOT NULL CHECK(club IN ('DT', 'Bug'))
-      );
+  const db = await dbPromise;
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS staff (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      club TEXT NOT NULL CHECK(club IN ('DT', 'Bug'))
+    );
 
-      CREATE TABLE IF NOT EXISTS records (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        staff_id INTEGER NOT NULL,
-        month TEXT NOT NULL,
-        hours REAL DEFAULT 0,
-        gifts INTEGER DEFAULT 0,
-        FOREIGN KEY(staff_id) REFERENCES staff(id)
-      );
-    `);
-    console.log('Database setup complete');
-  } catch (err) {
-    console.error('Database setup failed:', err);
-  }
+    CREATE TABLE IF NOT EXISTS records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      staff_id INTEGER NOT NULL,
+      month TEXT NOT NULL,
+      hours REAL DEFAULT 0,
+      gifts INTEGER DEFAULT 0,
+      FOREIGN KEY(staff_id) REFERENCES staff(id)
+    );
+  `);
+  console.log('Database initialized');
 }
 
 setup();
@@ -59,8 +48,7 @@ app.get('/api/staff', async (req, res) => {
     const staff = await db.all('SELECT * FROM staff');
     res.json(staff);
   } catch (err) {
-    console.error('Error fetching staff:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -71,8 +59,7 @@ app.post('/api/staff', async (req, res) => {
     const result = await db.run('INSERT INTO staff (name, club) VALUES (?, ?)', [name, club]);
     res.json({ id: result.lastID, name, club });
   } catch (err) {
-    console.error('Error creating staff:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -83,12 +70,10 @@ app.delete('/api/staff/:id', async (req, res) => {
     await db.run('DELETE FROM records WHERE staff_id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    console.error('Error deleting staff:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Record endpoints
 app.post('/api/records', async (req, res) => {
   try {
     const { staff_id, month, hours, gifts } = req.body;
@@ -102,12 +87,10 @@ app.post('/api/records', async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    console.error('Error updating records:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Report endpoint
 app.get('/api/report/:month', async (req, res) => {
   try {
     const { month } = req.params;
@@ -119,73 +102,54 @@ app.get('/api/report/:month', async (req, res) => {
       LEFT JOIN records r ON s.id = r.staff_id AND r.month = ?
     `, [month]);
 
-    const clubs = { DT: [], Bug: [] };
-    data.forEach(row => {
-      const hours = row.hours || 0;
-      const gifts = row.gifts || 0;
-      if (clubs[row.club]) {
-        clubs[row.club].push({ ...row, hours, gifts });
-      } else {
-        console.warn(`Unknown club for staff ${row.name}: ${row.club}`);
-      }
-    });
-
     const finalReport = [];
+    const sortedAll = [...data].sort((a, b) => (b.hours || 0) - (a.hours || 0));
+    const aceIds = new Set(sortedAll.slice(0, 3).filter(s => (s.hours || 0) > 0).map(s => s.id));
 
-    Object.keys(clubs).forEach(clubName => {
-      const staffInClub = clubs[clubName];
-      staffInClub.sort((a, b) => b.hours - a.hours);
+    data.forEach(staff => {
+      const hours = staff.hours || 0;
+      const gifts = staff.gifts || 0;
+      const giftValue = gifts * 12;
+      const isAce = aceIds.has(staff.id);
+      
+      let baseSalary, clubCut;
+      
+      if (isAce) {
+        baseSalary = hours * 14;
+        const taxableSalary = Math.max(0, baseSalary - (4 * hours));
+        clubCut = (0.25 * taxableSalary) + (0.10 * giftValue);
+      } else {
+        baseSalary = hours * 10;
+        clubCut = (0.20 * baseSalary) + (0.10 * giftValue);
+      }
 
-      staffInClub.forEach((staff, index) => {
-        const isAce = index < 3 && staff.hours > 0;
-        const hours = staff.hours;
-        const gifts = staff.gifts;
-        const giftValue = gifts * 12;
-        
-        let baseSalary, clubCut;
-        
-        if (isAce) {
-          baseSalary = hours * 14;
-          const taxableSalary = Math.max(0, baseSalary - (4 * hours));
-          clubCut = (0.25 * taxableSalary) + (0.10 * giftValue);
-        } else {
-          baseSalary = hours * 10;
-          clubCut = (0.20 * baseSalary) + (0.10 * giftValue);
-        }
+      const finalSalary = (baseSalary + giftValue) - clubCut;
 
-        const finalSalary = (baseSalary + giftValue) - clubCut;
-
-        finalReport.push({
-          ...staff,
-          isAce,
-          baseSalary,
-          giftValue,
-          clubCut,
-          finalSalary
-        });
+      finalReport.push({
+        ...staff,
+        hours,
+        gifts,
+        isAce,
+        baseSalary,
+        giftValue,
+        clubCut,
+        finalSalary
       });
     });
 
     res.json(finalReport);
   } catch (err) {
-    console.error('Error generating report:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Catch-all to serve React app for any other routes (when run locally)
+// Catch-all to serve React app
 app.use((req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    return next();
-  }
+  if (req.path.startsWith('/api')) return next();
   res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
-if (require.main === module) {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Unified Server running on port ${PORT}`);
-  });
-}
-
-module.exports = app;
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
