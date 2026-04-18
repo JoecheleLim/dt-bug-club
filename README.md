@@ -38,7 +38,11 @@ git clone https://github.com/JoecheleLim/dt-bug-club.git
 cd dt-bug-club
 
 # Install all dependencies (Root, Frontend, Backend)
+# For Mac / Linux
 npm install && npm run install:all
+
+# For Windows
+npm install ; npm run install:all
 ```
 
 ### 3. Start the Development Server
