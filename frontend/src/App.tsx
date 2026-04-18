@@ -53,6 +53,7 @@ const SidebarLink = ({ to, icon, label }: { to: string, icon: React.ReactNode, l
 
 const Header = ({ isConnected }: { isConnected: boolean }) => {
   const currentPort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+  const displayPort = window.location.port ? window.location.port : currentPort;
   
   return (
     <header className="h-14 bg-cyber-card border-b border-cyber-border flex items-center justify-between px-6">
@@ -64,7 +65,7 @@ const Header = ({ isConnected }: { isConnected: boolean }) => {
         <div className="h-4 w-px bg-cyber-border"></div>
         <div className={`flex items-center gap-2 text-xs ${isConnected ? 'text-green-500' : 'text-red-500'}`}>
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-          <span>{isConnected ? `System Online: Port ${currentPort}` : 'System Offline: Check Backend'}</span>
+          <span>{isConnected ? `System Online: Port ${displayPort}` : 'System Offline: Check Backend'}</span>
         </div>
       </div>
     
