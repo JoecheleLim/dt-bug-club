@@ -51,19 +51,22 @@ const SidebarLink = ({ to, icon, label }: { to: string, icon: React.ReactNode, l
   );
 };
 
-const Header = ({ isConnected }: { isConnected: boolean }) => (
-  <header className="h-14 bg-cyber-card border-b border-cyber-border flex items-center justify-between px-6">
-    <div className="flex items-center gap-4">
-      <div className="flex items-center gap-2 text-xs text-gray-500">
-        <Database size={14} />
-        <span>db_v1.sqlite</span>
+const Header = ({ isConnected }: { isConnected: boolean }) => {
+  const currentPort = window.location.port || (window.location.protocol === 'https:' ? '443' : '80');
+  
+  return (
+    <header className="h-14 bg-cyber-card border-b border-cyber-border flex items-center justify-between px-6">
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <Database size={14} />
+          <span>db_v1.sqlite</span>
+        </div>
+        <div className="h-4 w-px bg-cyber-border"></div>
+        <div className={`flex items-center gap-2 text-xs ${isConnected ? 'text-green-500' : 'text-red-500'}`}>
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+          <span>{isConnected ? `System Online: Port ${currentPort}` : 'System Offline: Check Backend'}</span>
+        </div>
       </div>
-      <div className="h-4 w-px bg-cyber-border"></div>
-      <div className={`flex items-center gap-2 text-xs ${isConnected ? 'text-green-500' : 'text-red-500'}`}>
-        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-        <span>{isConnected ? 'System Online: Port 3001' : 'System Offline: Check Backend'}</span>
-      </div>
-    </div>
     
     <div className="flex items-center gap-4">
       <Link to="/dashboard" className="flex items-center gap-2 text-[10px] bg-cyber-primary/10 text-cyber-primary px-3 py-1.5 rounded-md border border-cyber-primary/30 hover:bg-cyber-primary/20 transition-all font-bold">
