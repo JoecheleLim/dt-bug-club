@@ -32,7 +32,7 @@ Make sure you have [Node.js](https://nodejs.org/) installed.
 Clone the repository and install the dependencies:
 ```bash
 # Clone the repo
-git clone <your-github-repo-url>
+git clone [<dt-bug-club>](https://github.com/JoecheleLim/dt-bug-club.git)
 
 # Enter the folder
 cd dt-bug-club
@@ -56,5 +56,5 @@ The site will be available at ```http://localhost:3001```.
  - AI Engine: Google Gemini CLI
 
 ### 👤 Author
- - Created by: JoecheleLim
+ - Created by: [JoecheleLim](https://github.com/JoecheleLim)
  - Assistant: Gemini CLI
