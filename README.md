@@ -32,7 +32,7 @@ Make sure you have [Node.js](https://nodejs.org/) installed.
 Clone the repository and install the dependencies:
 ```bash
 # Clone the repo
-git clone [<dt-bug-club>](https://github.com/JoecheleLim/dt-bug-club.git)
+git clone [https://github.com/JoecheleLim/dt-bug-club.git](https://github.com/JoecheleLim/dt-bug-club.git)
 
 # Enter the folder
 cd dt-bug-club
